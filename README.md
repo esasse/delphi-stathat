@@ -16,3 +16,4 @@ Just add StatHat to your uses clause and call one of its methods:
 
 - Async calls
 - HTTPS support
+- Offline support
