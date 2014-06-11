@@ -12,8 +12,9 @@ Just add StatHat to your uses clause and call one of its methods:
     EzPostCount('messages sent - female to male', 'YOUR_API_KEY', 13);
 ```
 
+All calls are async.
+
 ### To Do
 
-- Async calls
 - HTTPS support
 - Offline support
