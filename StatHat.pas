@@ -35,7 +35,7 @@ begin
   Result := FloatToStr(Value, FS);
 end;
 
-procedure EzPostCount(const EzKey, Stat: string; Count: Double);
+procedure EzPost(const EzKey, Stat, StatType: string; StatValue: Double);
 var
   Params: TStringList;
 begin
@@ -43,26 +43,30 @@ begin
   try
     Params.Values['ezkey'] := EzKey;
     Params.Values['stat'] := Stat;
-    Params.Values['count'] := ConvertDouble(Count);
+    Params.Values[StatType] := ConvertDouble(StatValue);
     Post(Params);
   finally
     Params.Free;
   end;
 end;
 
-procedure EzPostValue(const EzKey, Stat: string; Value: Double);
-var
-  Params: TStringList;
+procedure EzPostAsync(const EzKey, Stat, StatType: string; StatValue: Double);
 begin
-  Params := TStringList.Create;
-  try
-    Params.Values['ezkey'] := EzKey;
-    Params.Values['stat'] := Stat;
-    Params.Values['value'] := ConvertDouble(Value);
-    Post(Params);
-  finally
-    Params.Free;
-  end;
+  TThread.CreateAnonymousThread(
+    procedure
+    begin
+      EzPost(EzKey, Stat, StatType, StatValue);
+    end).Start;
+end;
+
+procedure EzPostCount(const EzKey, Stat: string; Count: Double);
+begin
+  EzPostAsync(EzKey, Stat, 'count', Count);
+end;
+
+procedure EzPostValue(const EzKey, Stat: string; Value: Double);
+begin
+  EzPostAsync(EzKey, Stat, 'value', Value);
 end;
 
 end.
