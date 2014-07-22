@@ -2,14 +2,19 @@ unit StatHat;
 
 interface
 
-procedure EzPostCount(const EzKey, Stat: string; Count: Double);
-procedure EzPostValue(const EzKey, Stat: string; Value: Double);
+uses
+  Classes;
+
+type
+  TErrorHandler = reference to procedure(ErrorMessage: string);
+
+procedure EzPostCount(const EzKey, Stat: string; Count: Double; ErrorHandler: TErrorHandler = nil);
+procedure EzPostValue(const EzKey, Stat: string; Value: Double; ErrorHandler: TErrorHandler = nil);
 
 implementation
 
 uses
   IdHTTP,
-  Classes,
   SysUtils;
 
 const
@@ -35,38 +40,54 @@ begin
   Result := FloatToStr(Value, FS);
 end;
 
-procedure EzPost(const EzKey, Stat, StatType: string; StatValue: Double);
+procedure EzPost(const EzKey, Stat, StatType: string; StatValue: Double; ErrorHandler: TErrorHandler);
 var
   Params: TStringList;
+  ErrorMessage: string;
 begin
   Params := TStringList.Create;
   try
-    Params.Values['ezkey'] := EzKey;
-    Params.Values['stat'] := Stat;
-    Params.Values[StatType] := ConvertDouble(StatValue);
-    Post(Params);
+    try
+      Params.Values['ezkey'] := EzKey;
+      Params.Values['stat'] := Stat;
+      Params.Values[StatType] := ConvertDouble(StatValue);
+      Post(Params);
+    except
+      on e: Exception do
+      begin
+        ErrorMessage := e.Message;
+        if Assigned(ErrorHandler) then
+        begin
+          TThread.Synchronize(nil,
+            procedure
+            begin
+              ErrorHandler(ErrorMessage)
+            end);
+        end;
+      end;
+    end;
   finally
     Params.Free;
   end;
 end;
 
-procedure EzPostAsync(const EzKey, Stat, StatType: string; StatValue: Double);
+procedure EzPostAsync(const EzKey, Stat, StatType: string; StatValue: Double; ErrorHandler: TErrorHandler);
 begin
   TThread.CreateAnonymousThread(
     procedure
     begin
-      EzPost(EzKey, Stat, StatType, StatValue);
+      EzPost(EzKey, Stat, StatType, StatValue, ErrorHandler);
     end).Start;
 end;
 
-procedure EzPostCount(const EzKey, Stat: string; Count: Double);
+procedure EzPostCount(const EzKey, Stat: string; Count: Double; ErrorHandler: TErrorHandler = nil);
 begin
-  EzPostAsync(EzKey, Stat, 'count', Count);
+  EzPostAsync(EzKey, Stat, 'count', Count, ErrorHandler);
 end;
 
-procedure EzPostValue(const EzKey, Stat: string; Value: Double);
+procedure EzPostValue(const EzKey, Stat: string; Value: Double; ErrorHandler: TErrorHandler = nil);
 begin
-  EzPostAsync(EzKey, Stat, 'value', Value);
+  EzPostAsync(EzKey, Stat, 'value', Value, ErrorHandler);
 end;
 
 end.
